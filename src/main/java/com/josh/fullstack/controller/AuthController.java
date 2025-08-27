@@ -1,8 +1,10 @@
 package com.josh.fullstack.controller;
 
+import com.josh.fullstack.audit.AuditService;
 import com.josh.fullstack.model.User;
 import com.josh.fullstack.repository.UserRepository;
 import com.josh.fullstack.security.JwtUtil;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import org.springframework.http.HttpStatus;
@@ -17,11 +19,14 @@ public class AuthController {
 
     private final UserRepository users;
     private final PasswordEncoder encoder;
+
+    private final AuditService auditService;
     private final JwtUtil jwt;
 
-    public AuthController(UserRepository users, PasswordEncoder encoder, JwtUtil jwt) {
+    public AuthController(UserRepository users, PasswordEncoder encoder, AuditService auditService, JwtUtil jwt) {
         this.users = users;
         this.encoder = encoder;
+        this.auditService = auditService;
         this.jwt = jwt;
     }
 
@@ -29,13 +34,16 @@ public class AuthController {
     public record LoginResponse(String token) {}
 
     @PostMapping("/login")
-    public ResponseEntity<LoginResponse> login(@RequestBody LoginRequest req) {
+    public ResponseEntity<LoginResponse> login(@RequestBody LoginRequest req, HttpServletRequest request) {
         User u = users.findByEmail(req.email())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid credentials"));
+                .orElseThrow(() -> {auditService.log(null, "LOGIN_FAILED", req.email(), "{\"reason\":\"user_not_found\"}", request);
+                    return new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid credentials");});
         if (!encoder.matches(req.password(), u.getPasswordHash())) {
+            auditService.log(null, "LOGIN_FAILED", req.email(), "{\"reason\":\"bad_password\"}", request);
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid credentials");
         }
         String token = jwt.generateToken(u.getEmail(), u.getRole());
+        auditService.log(null, "LOGIN", u.getEmail(), "{\"success\":true}", request);
         return ResponseEntity.ok(new LoginResponse(token));
     }
 }
