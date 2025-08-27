@@ -38,9 +38,10 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll() // <-- allow preflight
                         .requestMatchers(HttpMethod.POST, "/auth/login").permitAll()
-                        .requestMatchers("/users/**").hasRole("ADMIN")
                         .requestMatchers(org.springframework.http.HttpMethod.GET,
                                 "/users/**","/interviews/**","/candidates/**","/calls/**").authenticated()
+                        .requestMatchers(org.springframework.http.HttpMethod.GET, "/audits/**").authenticated()
+                        .requestMatchers(org.springframework.http.HttpMethod.POST, "/audits/**").hasRole("ADMIN")
                         .requestMatchers(org.springframework.http.HttpMethod.POST,
                                 "/users/**","/interviews/**","/candidates/**","/calls/**").hasRole("ADMIN")
                         .requestMatchers(org.springframework.http.HttpMethod.DELETE, "/**").hasRole("ADMIN")

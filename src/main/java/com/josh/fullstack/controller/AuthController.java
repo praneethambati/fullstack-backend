@@ -1,6 +1,6 @@
 package com.josh.fullstack.controller;
 
-import com.josh.fullstack.audit.AuditService;
+import com.josh.fullstack.service.AuditService;
 import com.josh.fullstack.model.User;
 import com.josh.fullstack.repository.UserRepository;
 import com.josh.fullstack.security.JwtUtil;
@@ -36,14 +36,11 @@ public class AuthController {
     @PostMapping("/login")
     public ResponseEntity<LoginResponse> login(@RequestBody LoginRequest req, HttpServletRequest request) {
         User u = users.findByEmail(req.email())
-                .orElseThrow(() -> {auditService.log(null, "LOGIN_FAILED", req.email(), "{\"reason\":\"user_not_found\"}", request);
-                    return new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid credentials");});
+                .orElseThrow(() -> {return new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid credentials");});
         if (!encoder.matches(req.password(), u.getPasswordHash())) {
-            auditService.log(null, "LOGIN_FAILED", req.email(), "{\"reason\":\"bad_password\"}", request);
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid credentials");
         }
         String token = jwt.generateToken(u.getEmail(), u.getRole());
-        auditService.log(null, "LOGIN", u.getEmail(), "{\"success\":true}", request);
         return ResponseEntity.ok(new LoginResponse(token));
     }
 }

@@ -1,6 +1,6 @@
 package com.josh.fullstack.controller;
 
-import com.josh.fullstack.audit.AuditService;
+import com.josh.fullstack.service.AuditService;
 import com.josh.fullstack.dto.UserDto;
 import com.josh.fullstack.model.User;
 import com.josh.fullstack.repository.UserRepository;
@@ -38,16 +38,11 @@ public class UserController {
 
     @PostMapping
     public ResponseEntity<UserDto> create(@RequestBody CreateUserRequest r, HttpServletRequest request) {
-        auditService.log(null, "USER_CREATE", r.email(),
-                "{\"email\":\""+r.email()+"\",\"role\":\""+r.role()+"\"}", request);
-
         return ResponseEntity.status(HttpStatus.CREATED).body(userService.create(r.email(), r.password(), r.role()));
     }
 
     @PatchMapping("/{id}")
     public UserDto update(@PathVariable Long id, @RequestBody UpdateUserRequest r, HttpServletRequest request) {
-        auditService.log(null, "USER_UPDATE", null,
-                "{\"active\":"+r.active()+",\"role\":\""+r.role()+"\"}", request);
 
         return userService.update(id, r.active(), r.role());
     }
@@ -56,8 +51,6 @@ public class UserController {
     public ResponseEntity<Void> delete(@PathVariable Long id, HttpServletRequest request) {
         User user = users.findById(id).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
         users.delete(user);
-
-        auditService.log(null, "USER_DELETE", user.getEmail(), "{}", request);
 
         return ResponseEntity.noContent().build();
     }
